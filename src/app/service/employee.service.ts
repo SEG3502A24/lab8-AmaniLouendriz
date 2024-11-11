@@ -43,14 +43,34 @@ mutation addEmployee($name: String!,
 export class EmployeeService {
   employees$: BehaviorSubject<readonly Employee[]> = new BehaviorSubject<readonly Employee[]>([]);
 
+  // constructor(private apollo: Apollo) {
+  //   this.apollo.watchQuery<any>({query: GET_EMPLOYEES}).valueChanges.pipe(
+  //     map(({data, loading}) => {
+  //       console.log("inside the service,",data.employees);
+  //       this.employees$.next(data.employees);
+  //     })
+  //   ).subscribe();
+  // }
+
   constructor(private apollo: Apollo) {
-    this.apollo.watchQuery<any>({query: GET_EMPLOYEES}).valueChanges.pipe(
-      map(({data, loading}) => {
-        this.employees$.next(data.employees);
+    this.apollo.watchQuery<any>({ query: GET_EMPLOYEES,   fetchPolicy: "no-cache", // no cache to avoid duplicates
+    }).valueChanges.pipe(
+      map(({ data, loading }) => {
+        // for the date to be displayed, it should be reconstructed here
+        const updatedEmployees = data.employees.map((employee: any) => {
+          const [day, month, year] = employee.dateOfBirth.split("-");
+          return {
+            ...employee,
+            dateOfBirth: `${year}-${month}-${day}`
+          };
+        });
+  
+        console.log("Updated employees:", updatedEmployees);
+        this.employees$.next(updatedEmployees);
       })
     ).subscribe();
   }
-
+  
   get $(): Observable<readonly Employee[]> {
     return this.employees$.asObservable();
   }
